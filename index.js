@@ -4,19 +4,17 @@ const PDFMerger = require('pdf-merger-js');
 const util = require('util');
 const readdir = util.promisify(fs.readdir);
 
-const url = 'file:///C:/PATH/TO/THE/EXPORTED/HTML/FILE.html';
+let url = 'file:///C:/PATH/TO/THE/EXPORTED/HTML/FILE.html';
 
+if(process.argv.length > 2){
+	url = process.argv[3];
+}
 
 
 let depth = 1;
 let printed = [];
 const printPdf = async (url) => {
     console.log('Generating PDF for: ' + url);
-
-	if(depth >= 100){
-		//Failsafe
-		return;
-	}
 
     const browser = await puppeteer.launch({
         headless: true
@@ -33,8 +31,15 @@ const printPdf = async (url) => {
         waitUntil: 'networkidle2'
     });
 
-	const hrefs = await page.$$eval('a', as => as.map(a => a.href));
+	const hrefs = await page.$$eval('a', anchors => anchors.map(a => a.href).select(href => href.indexOf("file://")));
+
 	for(let href of hrefs){
+
+		if(depth >= 100){
+			//Failsafe
+			return;
+		}
+
 		if(href.indexOf("file://") == 0){
 			
 			if(printed.indexOf(href) != -1){
